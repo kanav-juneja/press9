@@ -147,7 +147,6 @@ export default () => {
 	const [activeItems, setActiveItems] = useState({
 		level1: { level_name: undefined, active: undefined, children: [] },
 	})
-
     const [activeLevel, setActiveLevel] = useState(1)
     const [activeName, setActiveName] = useState(undefined)
 

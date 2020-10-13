@@ -6,7 +6,9 @@ const StyledApp = Styled.main`
   .drop-down {
     position: absolute;
     top: 5em;
-    left: 5em;
+    left: 0;
+    right: 0;
+    margin: 0 auto;
   }
 `
 
