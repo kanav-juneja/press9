@@ -7,6 +7,53 @@ import {
 	CaretLeft,
 } from '@styled-icons/boxicons-regular'
 
+const getData = () => {
+	const data = {
+		level_name: 'site',
+		entries: [
+			{
+				id: '1',
+				name: 'SNN Greenbay',
+			},
+			{
+				id: '2',
+				name: 'SMM Yellowbay',
+				children: {
+					level_name: 'Zone',
+					entries: [
+						{
+							id: '4',
+							name: 'Zone 1',
+						},
+						{
+							id: '5',
+							name: 'Zone 2',
+							children: {
+								level_name: 'Building',
+								entries: [
+									{
+										id: '6',
+										name: 'Building 1',
+									},
+									{
+										id: '7',
+										name: 'Building 2',
+									},
+								],
+							},
+						},
+					],
+				},
+			},
+			{
+				id: '3',
+				name: 'SLL Orangebay',
+			},
+		],
+	}
+	return new Promise((resolve) => setTimeout(resolve(data), 500))
+}
+
 const StyledDropDown = Styled.div`
     width: 14em;
     height: 2.5em;
@@ -94,99 +141,75 @@ const StyledDropDown = Styled.div`
 `
 
 export default () => {
-	const [data, setData] = useState({
-		level_name: 'site',
-		entries: [
-			{
-				id: '1',
-				name: 'SNN Greenbay',
-			},
-			{
-				id: '2',
-				name: 'SMM Yellowbay',
-				children: {
-					level_name: 'Zone',
-					entries: [
-						{
-							id: '4',
-							name: 'Zone 1',
-						},
-						{
-							id: '5',
-							name: 'Zone 2',
-							children: {
-								level_name: 'Building',
-								entries: [
-									{
-										id: '6',
-										name: 'Building 1',
-									},
-									{
-										id: '7',
-										name: 'Building 2',
-									},
-								],
-							},
-						},
-					],
-				},
-			},
-			{
-				id: '3',
-				name: 'SLL Orangebay',
-			},
-		],
-	})
+	const [data, setData] = useState(undefined)
 
 	const [active, setActive] = useState(false)
 	const [activeItems, setActiveItems] = useState({
 		level1: { level_name: undefined, active: undefined, children: [] },
 	})
 
-	const [activeLevel, setActiveLevel] = useState(1)
+    const [activeLevel, setActiveLevel] = useState(1)
+    const [activeName, setActiveName] = useState(undefined)
 
 	useEffect(() => {
+        const _getData = async() => {
+            setData(await getData())
+        }
+        _getData()
 		document.addEventListener('click', () => closeDropDown())
 		return document.removeEventListener('click', () => closeDropDown())
 	}, [])
 
 	useEffect(() => {
-        const { level_name, entries } = data
+		if (!data) return
+		const { level_name, entries } = data
 		setActiveItems({ level1: { level_name, children: entries } })
-	}, [data])
+    }, [data])
+    
+    useEffect(() => {
+        if (!activeItems?.[`level${activeLevel}`].active && activeLevel > 1) {
+            return setActiveName(activeItems?.[`level${activeLevel - 1}`].active.name)
+        }
+        setActiveName(activeItems?.[`level${activeLevel}`]?.active?.name)
+    }, [activeItems, activeLevel])
 
 	const closeDropDown = () => setActive(false)
 
 	const handleDropdownClick = (level, entry) => {
-        const { name, id } = entry
-        
-        if (!entry.children) {
-            const { level_name, entries } = level
+		const { name, id } = entry
+
+		if (!entry.children) {
+			const { level_name, entries } = level
 			closeDropDown()
 			setActiveItems({
 				...activeItems,
-				[`level${activeLevel}`]: { ...activeItems[`level${activeLevel}`], level_name, active: { name, id }},
+				[`level${activeLevel}`]: {
+					...activeItems[`level${activeLevel}`],
+					level_name,
+                    active: { name, id, children: entry.children ? true : false }
+				},
 			})
 		} else {
 			setActiveLevel(activeLevel + 1)
 			const { level_name, entries } = entry.children
 			setActiveItems({
-                ...activeItems,
-                [`level${activeLevel}`]: { ...activeItems[`level${activeLevel}`], active: { name, id }},
+				...activeItems,
+				[`level${activeLevel}`]: {
+					...activeItems[`level${activeLevel}`],
+					active: { name, id, children: entry.children ? true : false },
+				},
 				[`level${activeLevel + 1}`]: { level_name, children: entries },
 			})
 		}
-    }
-    
-    const levelBack = () => {
-        setActiveItems({
-            ...activeItems,
-            [`level${activeLevel}`]: {
-                ...activeItems[`level${activeLevel}`], active: undefined
-            }
-        })
-        setActiveLevel(activeLevel - 1)
-    }
+	}
+
+	const levelBack = () => {
+		setActiveItems({
+			...activeItems,
+			[`level${activeLevel}`]: { children: undefined, active: undefined, level_name: undefined },
+		})
+		setActiveLevel(activeLevel - 1)
+	}
 
 	const DropDown = (_level) => {
 		const level = activeItems[`level${activeLevel}`]
@@ -220,20 +243,20 @@ export default () => {
 		event.nativeEvent &&
 			event.nativeEvent.stopImmediatePropagation &&
 			event.nativeEvent.stopImmediatePropagation()
-	}
+    }
 
 	return (
 		<StyledDropDown className='drop-down' onClick={(e) => noBubbling(e)}>
 			<div className='placeholder' onClick={() => setActive(!active)}>
-				<h6>
-					{!activeItems?.[`level${activeLevel}`]?.active?.id
-						? 'Select Input'
-						: activeItems?.[`level${activeLevel}`]?.active?.name}
-				</h6>
-				{!active && <CaretDown className='icon caret' />}
-				{active && <CaretUp className='icon caret' />}
+				<h6>{activeName || 'Select Input'}</h6>
+				{activeItems.level1?.level_name && (
+					<>
+						{!active && <CaretDown className='icon caret' />}
+						{active && <CaretUp className='icon caret' />}
+					</>
+				)}
 			</div>
-			{activeItems.level1 && <DropDown />}
+			{activeItems.level1?.level_name && <DropDown />}
 		</StyledDropDown>
 	)
 }
