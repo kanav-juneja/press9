@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import Styled from 'styled-components'
-import { CaretDown, CaretUp } from '@styled-icons/boxicons-regular'
+import {
+	CaretDown,
+	CaretUp,
+	CaretRight,
+	CaretLeft,
+} from '@styled-icons/boxicons-regular'
 
 const StyledDropDown = Styled.div`
     width: 14em;
@@ -15,6 +20,9 @@ const StyledDropDown = Styled.div`
 
     .icon {
         color: #5d5d5d;
+        &.caret {
+            width: 1.8em;
+        }
     }
 
     .placeholder {
@@ -32,7 +40,6 @@ const StyledDropDown = Styled.div`
         }
 
         .icon {
-            width: 1.8em;
             position: relative;
             right: -0.5em
         }
@@ -58,10 +65,25 @@ const StyledDropDown = Styled.div`
             box-sizing: border-box;
             line-height: 2.5em;
             cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            padding-right: 0.4em;
+
+            &.back {
+                flex-direction: row-reverse;
+                justify-content: flex-end;
+                padding-right: 1em;
+                padding-left: 0.4em;
+                .icon {
+                }
+            }
 
             &:hover {
                 background: #5d5e5d;
                 color: #FFF;
+                .icon {
+                    color: #FFF;
+                }
             }
 
             &:last-child {
@@ -82,6 +104,32 @@ export default () => {
 			{
 				id: '2',
 				name: 'SMM Yellowbay',
+				children: {
+					level_name: 'Zone',
+					entries: [
+						{
+							id: '4',
+							name: 'Zone 1',
+						},
+						{
+							id: '5',
+							name: 'Zone 2',
+							children: {
+								level_name: 'Building',
+								entries: [
+									{
+										id: '6',
+										name: 'Building 1',
+									},
+									{
+										id: '7',
+										name: 'Building 2',
+									},
+								],
+							},
+						},
+					],
+				},
 			},
 			{
 				id: '3',
@@ -91,31 +139,74 @@ export default () => {
 	})
 
 	const [active, setActive] = useState(false)
-	const [activeItem, setActiveItem] = useState({
-		level: undefined,
-		entry: undefined,
+	const [activeItems, setActiveItems] = useState({
+		level1: { level_name: undefined, active: undefined, children: [] },
 	})
 
+	const [activeLevel, setActiveLevel] = useState(1)
+
 	useEffect(() => {
-        document.addEventListener('click', () => closeDropDown())
-        return document.removeEventListener('click', () => closeDropDown())
-	})
+		document.addEventListener('click', () => closeDropDown())
+		return document.removeEventListener('click', () => closeDropDown())
+	}, [])
+
+	useEffect(() => {
+        const { level_name, entries } = data
+		setActiveItems({ level1: { level_name, children: entries } })
+	}, [data])
 
 	const closeDropDown = () => setActive(false)
 
 	const handleDropdownClick = (level, entry) => {
-        closeDropDown()
-        setActiveItem({ level, entry })
-	}
+        const { name, id } = entry
+        
+        if (!entry.children) {
+            const { level_name, entries } = level
+			closeDropDown()
+			setActiveItems({
+				...activeItems,
+				[`level${activeLevel}`]: { ...activeItems[`level${activeLevel}`], level_name, active: { name, id }},
+			})
+		} else {
+			setActiveLevel(activeLevel + 1)
+			const { level_name, entries } = entry.children
+			setActiveItems({
+                ...activeItems,
+                [`level${activeLevel}`]: { ...activeItems[`level${activeLevel}`], active: { name, id }},
+				[`level${activeLevel + 1}`]: { level_name, children: entries },
+			})
+		}
+    }
+    
+    const levelBack = () => {
+        setActiveItems({
+            ...activeItems,
+            [`level${activeLevel}`]: {
+                ...activeItems[`level${activeLevel}`], active: undefined
+            }
+        })
+        setActiveLevel(activeLevel - 1)
+    }
 
-	const DropDown = ({ list }) => {
-		if (!list?.entries || !active) return <span />
-		const { level_name, entries } = list
+	const DropDown = (_level) => {
+		const level = activeItems[`level${activeLevel}`]
+		if (!level?.children || !active) return <span />
+		const { level_name, entries } = level
 		return (
 			<ul className='DropDown'>
-				{list.entries.map((e) => (
-					<li key={e.id} onClick={() => handleDropdownClick(level_name, e)}>
+				{activeLevel > 1 && (
+					<li className='back' onClick={() => levelBack()}>
+						Back <CaretLeft className='icon caret' />
+					</li>
+				)}
+				{level.children.map((e) => (
+					<li
+						key={e.id}
+						onClick={() => handleDropdownClick(level, e)}
+						className={''}
+					>
 						{e.name}
+						{e.children && <CaretRight className='icon caret' />}
 					</li>
 				))}
 			</ul>
@@ -134,11 +225,15 @@ export default () => {
 	return (
 		<StyledDropDown className='drop-down' onClick={(e) => noBubbling(e)}>
 			<div className='placeholder' onClick={() => setActive(!active)}>
-                <h6>{!activeItem?.entry?.id ? 'Select Input' : activeItem?.entry?.name}</h6>
-				{!active && <CaretDown className='icon' />}
-				{active && <CaretUp className='icon' />}
+				<h6>
+					{!activeItems?.[`level${activeLevel}`]?.active?.id
+						? 'Select Input'
+						: activeItems?.[`level${activeLevel}`]?.active?.name}
+				</h6>
+				{!active && <CaretDown className='icon caret' />}
+				{active && <CaretUp className='icon caret' />}
 			</div>
-			<DropDown list={data} />
+			{activeItems.level1 && <DropDown />}
 		</StyledDropDown>
 	)
 }
