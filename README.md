@@ -11,3 +11,5 @@ Further Improvements -
 3. Way to clear dropdown and reset to initial state.
 
 4. Way to specify and ensure a user selects a value at a particular level of the dropdown. Example - to ensure user selects a 'Building', and does not drop off at 'Zone' level.
+
+5. Expose an onChange prop, to pass on the selected value to a parent component, or a state management library like redux.
